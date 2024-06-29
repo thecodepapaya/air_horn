@@ -4,7 +4,7 @@ import 'package:vibration/vibration.dart';
 class HornVibrator {
   static void start() {
     Vibration.vibrate(
-      duration: 2000000000,
+      duration: Duration.millisecondsPerHour,
       amplitude: 255,
     );
   }
@@ -26,6 +26,7 @@ class Player {
   }
 
   static void onEnd() async {
-    _player.stop();
+    await _player.pause();
+    _player.seek(Duration.zero);
   }
 }

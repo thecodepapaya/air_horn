@@ -113,8 +113,8 @@ class _HomePageState extends State<HomePage> {
                     right: (_offset - animationValue) * 2,
                   ),
                   duration: Durations.short2,
-                  height: 120,
-                  width: 120,
+                  height: 150,
+                  width: 150,
                   decoration: BoxDecoration(
                     color: Colors.red,
                     shape: BoxShape.circle,
@@ -128,6 +128,7 @@ class _HomePageState extends State<HomePage> {
                     child: Text(
                       'BUTTON',
                       style: TextStyle(
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
