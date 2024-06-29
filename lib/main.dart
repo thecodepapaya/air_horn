@@ -108,37 +108,27 @@ class _HomePageState extends State<HomePage> {
             child: Stack(
               children: [
                 AnimatedContainer(
-                    margin: EdgeInsets.only(
-                      top: (_offset - animationValue) * 2,
-                      right: (_offset - animationValue) * 2,
-                    ),
-                    duration: Durations.short2,
-                    height: 150,
-                    width: 150,
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          offset: Offset(-animationValue, animationValue),
-                        ),
-                      ],
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Image.asset('assets/icon.png'),
-                    )
-                    //  const Center(
-                    //   child: Text(
-                    //     'BUTTON',
-                    //     style: TextStyle(
-                    //       fontSize: 18,
-                    //       fontWeight: FontWeight.bold,
-                    //       color: Colors.white,
-                    //     ),
-                    //   ),
-                    // ),
-                    ),
+                  margin: EdgeInsets.only(
+                    top: (_offset - animationValue) * 2,
+                    right: (_offset - animationValue) * 2,
+                  ),
+                  duration: Durations.short2,
+                  height: 150,
+                  width: 150,
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        offset: Offset(-animationValue, animationValue),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Image.asset('assets/icon.png'),
+                  ),
+                ),
               ],
             ),
           ),
