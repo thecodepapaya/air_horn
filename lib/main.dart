@@ -41,10 +41,10 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     Player.init();
-    _resetPulser();
+    _restartPulser();
   }
 
-  void _resetPulser() {
+  void _restartPulser() {
     _ticker?.cancel();
     _ticker = Timer.periodic(const Duration(seconds: 3), (timer) async {
       setState(() {
@@ -55,6 +55,10 @@ class _HomePageState extends State<HomePage> {
         animationValue += _pulserOffset;
       });
     });
+  }
+
+  void _pausePulser() {
+    _ticker?.cancel();
   }
 
   @override
@@ -75,7 +79,7 @@ class _HomePageState extends State<HomePage> {
 
   void _end() {
     Player.onEnd();
-    _resetPulser();
+    _restartPulser();
     HornVibrator.end();
 
     setState(() {
@@ -101,6 +105,7 @@ class _HomePageState extends State<HomePage> {
             },
             onLongPress: () {
               _begin();
+              _pausePulser();
             },
             onLongPressEnd: (details) {
               _end();
