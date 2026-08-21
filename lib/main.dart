@@ -105,10 +105,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   static const _offset = 10.0;
   static const _pulserOffset = 5.0;
   static const _holdThreshold = Duration(milliseconds: 500);
+  static const _holdToastCooldown = Duration(seconds: 2);
 
   var animationValue = _offset;
   Timer? _ticker;
   Timer? _holdTimer;
+  Timer? _holdToastCooldownTimer;
   var _pulserGeneration = 0;
   int? _activePointer;
   var _heldLongEnough = false;
@@ -170,6 +172,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _holdTimer?.cancel();
+    _holdToastCooldownTimer?.cancel();
     _pausePulser();
     unawaited(Player.onEnd());
     unawaited(HornVibrator.end());
@@ -226,7 +229,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     unawaited(Player.onEnd());
     _restartPulser();
     if (showHoldNudge) {
-      unawaited(HoldNudge.show());
+      final showToast = _holdToastCooldownTimer == null;
+      if (showToast) {
+        _holdToastCooldownTimer = Timer(_holdToastCooldown, () {
+          _holdToastCooldownTimer = null;
+        });
+      }
+      unawaited(HoldNudge.show(showToast: showToast));
     } else {
       unawaited(HornVibrator.end());
     }
@@ -385,6 +394,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     boxShadow: [
                       BoxShadow(
                         offset: Offset(-animationValue, animationValue),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF8F2525)
+                            : Colors.black,
                       ),
                     ],
                   ),

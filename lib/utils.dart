@@ -42,8 +42,11 @@ class VolumeNudge {
 }
 
 class HoldNudge {
-  static Future<void> show() async {
-    await Future.wait([HornVibrator.attention(), _showToast()]);
+  static Future<void> show({required bool showToast}) async {
+    await Future.wait([
+      HornVibrator.attention(),
+      if (showToast) _showToast(),
+    ]);
   }
 
   static Future<void> _showToast() async {
