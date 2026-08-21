@@ -2,29 +2,100 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:horn/utils.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-void main() {
-  runApp(const MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final themeMode = await ThemePreference.load();
+  runApp(MyApp(initialThemeMode: themeMode));
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class ThemePreference {
+  static const _key = 'theme_mode';
+
+  static Future<ThemeMode> load() async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      final savedMode = preferences.getString(_key);
+      return ThemeMode.values.firstWhere(
+        (mode) => mode.name == savedMode,
+        orElse: () => ThemeMode.system,
+      );
+    } catch (_) {
+      return ThemeMode.system;
+    }
+  }
+
+  static Future<void> save(ThemeMode mode) async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setString(_key, mode.name);
+    } catch (_) {
+      // A storage failure should not prevent changing the active theme.
+    }
+  }
+}
+
+class MyApp extends StatefulWidget {
+  const MyApp({super.key, this.initialThemeMode = ThemeMode.system});
+
+  final ThemeMode initialThemeMode;
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late ThemeMode _themeMode = widget.initialThemeMode;
+
+  void _setThemeMode(ThemeMode mode) {
+    if (_themeMode == mode) {
+      return;
+    }
+    setState(() {
+      _themeMode = mode;
+    });
+    unawaited(ThemePreference.save(mode));
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Air Horn',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.deepPurple,
+          brightness: Brightness.light,
+        ),
         useMaterial3: true,
       ),
-      home: const HomePage(),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.deepPurple,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      themeMode: _themeMode,
+      home: HomePage(
+        themeMode: _themeMode,
+        onThemeModeChanged: _setThemeMode,
+      ),
     );
   }
 }
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({
+    super.key,
+    required this.themeMode,
+    required this.onThemeModeChanged,
+  });
+
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -165,9 +236,130 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     });
   }
 
+  Future<void> _showThemeSettings() async {
+    Navigator.pop(context);
+    final selectedMode = await showDialog<ThemeMode>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: const Text('Choose theme'),
+        children: ThemeMode.values.map((mode) {
+          final selected = widget.themeMode == mode;
+          return SimpleDialogOption(
+            key: Key('theme-${mode.name}'),
+            onPressed: () => Navigator.pop(dialogContext, mode),
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(_themeIcon(mode)),
+              title: Text(_themeLabel(mode)),
+              trailing: selected ? const Icon(Icons.check) : null,
+            ),
+          );
+        }).toList(),
+      ),
+    );
+
+    if (selectedMode != null) {
+      widget.onThemeModeChanged(selectedMode);
+    }
+  }
+
+  void _showAbout() {
+    Navigator.pop(context);
+    showAboutDialog(
+      context: context,
+      applicationName: 'Air Horn',
+      applicationIcon: Image.asset('assets/icon.png', width: 56, height: 56),
+      children: const [
+        Text('A pocket air horn. Press and hold the button to sound it.'),
+      ],
+    );
+  }
+
+  Future<void> _openStoreListing() async {
+    Navigator.pop(context);
+    const appId = 'dev.thecodepapaya.horn';
+    final openedApp = await _launchExternal(
+      Uri.parse('market://details?id=$appId'),
+    );
+    final opened = openedApp ||
+        await _launchExternal(
+          Uri.https('play.google.com', '/store/apps/details', {'id': appId}),
+        );
+
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open the store listing.')),
+      );
+    }
+  }
+
+  static Future<bool> _launchExternal(Uri uri) async {
+    try {
+      return await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static String _themeLabel(ThemeMode mode) => switch (mode) {
+        ThemeMode.system => 'System default',
+        ThemeMode.light => 'Light',
+        ThemeMode.dark => 'Dark',
+      };
+
+  static IconData _themeIcon(ThemeMode mode) => switch (mode) {
+        ThemeMode.system => Icons.brightness_auto_outlined,
+        ThemeMode.light => Icons.light_mode_outlined,
+        ThemeMode.dark => Icons.dark_mode_outlined,
+      };
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(title: const Text('Air Horn')),
+      drawer: Drawer(
+        child: SafeArea(
+          child: Column(
+            children: [
+              DrawerHeader(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                ),
+                child: Row(
+                  children: [
+                    Image.asset('assets/icon.png', width: 72, height: 72),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        'Air Horn',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.palette_outlined),
+                title: const Text('Theme'),
+                subtitle: Text(_themeLabel(widget.themeMode)),
+                onTap: _showThemeSettings,
+              ),
+              ListTile(
+                leading: const Icon(Icons.star_outline),
+                title: const Text('Rate Air Horn'),
+                onTap: _openStoreListing,
+              ),
+              ListTile(
+                leading: const Icon(Icons.info_outline),
+                title: const Text('About'),
+                onTap: _showAbout,
+              ),
+            ],
+          ),
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.only(left: _offset * 2),
         child: Center(
@@ -198,7 +390,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
-                    child: Image.asset('assets/icon.png'),
+                    child: Image.asset(
+                      'assets/icon.png',
+                      key: const Key('horn-image'),
+                    ),
                   ),
                 ),
               ],

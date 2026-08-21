@@ -10,9 +10,35 @@ void main() {
     expect(find.byType(HomePage), findsOneWidget);
     expect(find.byKey(const Key('horn-button')), findsOneWidget);
 
-    final image = tester.widget<Image>(find.byType(Image));
+    final image = tester.widget<Image>(find.byKey(const Key('horn-image')));
     expect(image.image, isA<AssetImage>());
     expect((image.image as AssetImage).assetName, 'assets/icon.png');
+  });
+
+  testWidgets('drawer exposes theme, rate, and about actions', (tester) async {
+    await tester.pumpWidget(const MyApp());
+
+    await tester.tap(find.byTooltip('Open navigation menu'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Theme'), findsOneWidget);
+    expect(find.text('Rate Air Horn'), findsOneWidget);
+    expect(find.text('About'), findsOneWidget);
+    expect(find.text('System default'), findsOneWidget);
+  });
+
+  testWidgets('theme setting switches to dark mode', (tester) async {
+    await tester.pumpWidget(const MyApp());
+
+    await tester.tap(find.byTooltip('Open navigation menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Theme'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('theme-dark')));
+    await tester.pumpAndSettle();
+
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app.themeMode, ThemeMode.dark);
   });
 
   testWidgets('pending pulse does not update after disposal', (tester) async {

@@ -40,7 +40,8 @@ dependencies:
   just_audio: ^0.10.6
   volume_controller: ^3.6.0
   fluttertoast: ^10.0.0
-
+  shared_preferences: ^2.5.5
+  url_launcher: ^6.3.2
 dev_dependencies:
   flutter_test:
     sdk: flutter
