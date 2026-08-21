@@ -59,6 +59,6 @@ flutter test
 
 ## Releases
 
-Pushing a version tag such as `v1.0.6` runs the GitHub Actions release workflow.
+Pushing a version tag such as `v1.0.7` runs the GitHub Actions release workflow.
 It analyzes and tests the app, builds a signed Android App Bundle, and attaches
 the bundle to a GitHub Release.
