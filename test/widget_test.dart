@@ -1,30 +1,88 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:horn/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
+  testWidgets('renders the air horn control', (tester) async {
     await tester.pumpWidget(const MyApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(find.byType(HomePage), findsOneWidget);
+    expect(find.byKey(const Key('horn-button')), findsOneWidget);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+    final image = tester.widget<Image>(find.byType(Image));
+    expect(image.image, isA<AssetImage>());
+    expect((image.image as AssetImage).assetName, 'assets/icon.png');
+  });
+
+  testWidgets('pending pulse does not update after disposal', (tester) async {
+    await tester.pumpWidget(const MyApp());
+    await tester.pump(const Duration(seconds: 3));
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(Durations.medium1);
+  });
+
+  testWidgets('quick tap shows the hold hint', (tester) async {
+    final toastCalls = <MethodCall>[];
+    const toastChannel = MethodChannel('PonnamKarthik/fluttertoast');
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      toastChannel,
+      (call) async {
+        toastCalls.add(call);
+        return true;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        toastChannel,
+        null,
+      ),
+    );
+
+    await tester.pumpWidget(const MyApp());
+    final center = tester.getCenter(find.byKey(const Key('horn-button')));
+    final gesture = await tester.startGesture(center);
+    await tester.pump(const Duration(milliseconds: 100));
+    await gesture.up();
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(
+      toastCalls.where(
+        (call) =>
+            call.method == 'showToast' &&
+            (call.arguments as Map<Object?, Object?>)['msg'] ==
+                'Press and hold the button to keep the horn sounding.',
+      ),
+      hasLength(1),
+    );
+    await tester.pump(const Duration(seconds: 1));
+  });
+
+  testWidgets('holding the button does not show the hint', (tester) async {
+    final toastCalls = <MethodCall>[];
+    const toastChannel = MethodChannel('PonnamKarthik/fluttertoast');
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      toastChannel,
+      (call) async {
+        toastCalls.add(call);
+        return true;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        toastChannel,
+        null,
+      ),
+    );
+
+    await tester.pumpWidget(const MyApp());
+    final center = tester.getCenter(find.byKey(const Key('horn-button')));
+    final gesture = await tester.startGesture(center);
+    await tester.pump(const Duration(milliseconds: 600));
+    await gesture.up();
+    await tester.pump();
+
+    expect(toastCalls.where((call) => call.method == 'showToast'), isEmpty);
   });
 }
