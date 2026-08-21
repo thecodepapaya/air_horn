@@ -1,0 +1,78 @@
+name: Android Release Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  signed-aab:
+    name: Test and build signed AAB
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.1
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Restore Android signing files
+        env:
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          ANDROID_KEY_PROPERTIES_B64: ${{ secrets.ANDROID_KEY_PROPERTIES_B64 }}
+        run: |
+          set -euo pipefail
+          : "${ANDROID_KEYSTORE_B64:?Missing ANDROID_KEYSTORE_B64}"
+          : "${ANDROID_KEY_PROPERTIES_B64:?Missing ANDROID_KEY_PROPERTIES_B64}"
+          install -m 600 /dev/null android/app/upload-keystore.jks
+          install -m 600 /dev/null android/key.properties
+          printf '%s' "$ANDROID_KEYSTORE_B64" | base64 --decode > android/app/upload-keystore.jks
+          printf '%s' "$ANDROID_KEY_PROPERTIES_B64" | base64 --decode > android/key.properties
+
+      - name: Build signed Android App Bundle
+        run: flutter build appbundle --release
+
+      - name: Upload signed AAB
+        uses: actions/upload-artifact@v7
+        with:
+          name: air-horn-${{ github.sha }}
+          path: build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Remove signing files
+        if: always()
+        run: |
+          rm -f android/app/upload-keystore.jks
+          rm -f android/key.properties
