@@ -3,6 +3,7 @@ name: Android Release Build
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   workflow_dispatch:
 
 concurrency:
@@ -41,6 +42,17 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Validate release tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          set -euo pipefail
+          pubspec_version=$(awk '/^version:/ { print $2; exit }' pubspec.yaml)
+          release_version=${pubspec_version%%+*}
+          if [[ "$GITHUB_REF_NAME" != "v$release_version" ]]; then
+            echo "Tag $GITHUB_REF_NAME does not match pubspec version $release_version" >&2
+            exit 1
+          fi
+
       - name: Analyze
         run: flutter analyze
 
@@ -76,3 +88,37 @@ jobs:
         run: |
           rm -f android/app/upload-keystore.jks
           rm -f android/key.properties
+
+  github-release:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: signed-aab
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download signed AAB
+        uses: actions/download-artifact@v8
+        with:
+          name: air-horn-${{ github.sha }}
+          path: release
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test -s release/app-release.aab
+          release_version=${GITHUB_REF_NAME#v}
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" release/app-release.aab \
+              --repo "$GITHUB_REPOSITORY" \
+              --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" release/app-release.aab \
+              --repo "$GITHUB_REPOSITORY" \
+              --verify-tag \
+              --title "Air Horn $release_version" \
+              --generate-notes
+          fi
