@@ -2,10 +2,16 @@ import 'dart:async';
 
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/services.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:vibration/vibration.dart';
 import 'package:volume_controller/volume_controller.dart';
+
+class NativeToast {
+  static const _channel = MethodChannel('dev.thecodepapaya.horn/toast');
+
+  static Future<void> show(String message) =>
+      _channel.invokeMethod<void>('showToast', {'msg': message});
+}
 
 class VolumeNudge {
   static const _cooldown = Duration(seconds: 2);
@@ -25,11 +31,7 @@ class VolumeNudge {
     try {
       if (await VolumeController.instance.isMuted()) {
         _lastShownAt = DateTime.now();
-        await Fluttertoast.showToast(
-          msg: 'Turn up your media volume to hear the horn.',
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-        );
+        await NativeToast.show('Turn up your media volume to hear the horn.');
       }
     } on MissingPluginException {
       // Volume detection is unavailable in widget tests and unsupported hosts.
@@ -51,11 +53,7 @@ class HoldNudge {
 
   static Future<void> _showToast() async {
     try {
-      await Fluttertoast.showToast(
-        msg: 'Press and hold the button to keep the horn sounding.',
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-      );
+      await NativeToast.show('Press and hold the button to keep the horn sounding.');
     } on MissingPluginException {
       // Native toasts are unavailable in widget tests and unsupported hosts.
     } on PlatformException {

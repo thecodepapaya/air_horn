@@ -67,7 +67,7 @@ void main() {
 
   testWidgets('quick tap shows the hold hint', (tester) async {
     final toastCalls = <MethodCall>[];
-    const toastChannel = MethodChannel('PonnamKarthik/fluttertoast');
+    const toastChannel = MethodChannel('dev.thecodepapaya.horn/toast');
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
       toastChannel,
       (call) async {
@@ -104,7 +104,7 @@ void main() {
   testWidgets('repeated quick taps debounce the hold hint toast',
       (tester) async {
     final toastCalls = <MethodCall>[];
-    const toastChannel = MethodChannel('PonnamKarthik/fluttertoast');
+    const toastChannel = MethodChannel('dev.thecodepapaya.horn/toast');
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
       toastChannel,
       (call) async {
@@ -150,7 +150,7 @@ void main() {
 
   testWidgets('holding the button does not show the hint', (tester) async {
     final toastCalls = <MethodCall>[];
-    const toastChannel = MethodChannel('PonnamKarthik/fluttertoast');
+    const toastChannel = MethodChannel('dev.thecodepapaya.horn/toast');
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
       toastChannel,
       (call) async {
